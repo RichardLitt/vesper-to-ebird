@@ -166,15 +166,17 @@ function printResults (input, buckets, opts) {
           if (duration) {
             console.log(`Duration: ${chalk.white(duration)} mins.`)
           }
+          console.log('Species\tBirds\tNFCs')
           counts = _.countBy(buckets[date][hour], 'species')
           Object.keys(counts).forEach(species => {
+            const birdEstimate = estimateBirdsCalling(buckets[date][hour], species)
             if (species === '') {
-              console.log(`${detector}:\t`, counts[species])
+              console.log(`${detector}:\t${birdEstimate}\t(${counts[species]})`)
               // Flag errors often causes by pressing 'N' meaning 'Next'
             } else if (species === 'nowa') {
               console.log(chalk.red(`NOWA:\t ${counts[species]}`))
             } else {
-              console.log(`${species.toUpperCase()}:\t`, counts[species])
+              console.log(`${species.toUpperCase()}:\t${birdEstimate}\t(${counts[species]})`)
             }
           })
           console.log('')
@@ -182,6 +184,18 @@ function printResults (input, buckets, opts) {
       })
     }
   })
+}
+
+function estimateBirdsCalling (array, species) {
+  const format = 'HH:mm:ss'
+  const calls = _.map(_.filter(array, x => x.species === species), 'detection_time')
+  let dupes = 0
+  calls.forEach((time, index, array) => {
+    if (-moment(time, format).diff(moment(array[index + 1], format), 'seconds') <= 15) {
+      dupes++
+    }
+  })
+  return calls.length - dupes
 }
 
 async function exportResults (input, buckets, opts) {
@@ -220,9 +234,10 @@ async function exportResults (input, buckets, opts) {
       if (hour.length !== 0) {
         counts = _.countBy(buckets[date][hour], 'species')
         Object.keys(counts).forEach(species => {
+          const birdEstimate = estimateBirdsCalling(buckets[date][hour], species)
           const object = {}
           Object.assign(object, eBirdReportObj)
-          object.Number = counts[species]
+          object.Number = birdEstimate
           object.Date = moment(date, 'MM/DD/YY').format('M/DD/YYYY')
           object['Start Time'] = hour.split(':').slice(0, 2).join(':')
           object.Duration = getDuration(buckets, date, hour, arr, key, opts)
