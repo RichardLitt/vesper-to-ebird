@@ -25,7 +25,7 @@ const cli = meow(`
       type: 'string'
     },
     export: {
-      type: 'boolean'
+      type: 'string'
     }
   }
 })
@@ -260,12 +260,16 @@ async function exportResults (input, buckets, opts) {
     })
   })
 
-  fs.writeFile('test export.csv', Papa.unparse(output, { header: false }), 'utf8')
+  fs.writeFile(`${cli.flags.export}.csv`, Papa.unparse(output, { header: false }), 'utf8')
 }
 
 async function run () {
   const input = await getData(cli.input[0])
   let opts
+  if ((!cli.flags.start && cli.flags.end) || (cli.flags.start && !cli.flags.end)) {
+    console.log('You need both a start and an end date')
+    process.end(1)
+  }
   if (cli.flags.start && cli.flags.end) {
     opts = {
       start: moment(cli.flags.start, 'YYYY/MM/DD HH:mm:ss'),
@@ -303,6 +307,10 @@ async function run () {
   })
 
   printResults(input, buckets, opts)
+  if (cli.flags.export === '') {
+    console.log('Please provide an export file name')
+    process.end(1)
+  }
   if (cli.flags.export) {
     exportResults(input, buckets, opts)
   }
