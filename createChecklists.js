@@ -155,6 +155,7 @@ function getDuration (buckets, date, hour, arr, key, opts) {
 
 function printResults (input, buckets, opts) {
   let counts
+  const totalCounts = {}
   const detector = findDetector(input.data[0].detector)
   Object.keys(buckets).forEach(date => {
     if (Object.keys(buckets[date]).filter(x => buckets[date][x].length !== 0).length) {
@@ -171,7 +172,17 @@ function printResults (input, buckets, opts) {
           counts = _.countBy(buckets[date][hour], 'species')
           Object.keys(counts).forEach(species => {
             const birdEstimate = estimateBirdsCalling(buckets[date][hour], species)
-            if (species === '') {
+            if (!totalCounts[species]) {
+              totalCounts[species] = {
+                NFCs: counts[species],
+                birds: birdEstimate
+              }
+            } else {
+              totalCounts[species].NFCs += counts[species]
+              totalCounts[species].birds += birdEstimate
+            }
+
+            if (species === 'pass') {
               console.log(`${detector}:\t${birdEstimate}\t(${counts[species]})`)
               // Flag errors often causes by pressing 'N' meaning 'Next'
             } else if (species === 'nowa') {
@@ -184,6 +195,9 @@ function printResults (input, buckets, opts) {
         }
       })
     }
+  })
+  Object.keys(totalCounts).forEach(species => {
+    console.log(`${(species === '') ? 'Unidentified tseeps' : species.toUpperCase()}: ${totalCounts[species].birds} ${(totalCounts[species].birds === 1) ? 'bird' : 'birds'}, with ${totalCounts[species].NFCs} total calls.`)
   })
 }
 
