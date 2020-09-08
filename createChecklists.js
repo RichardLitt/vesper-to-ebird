@@ -60,6 +60,7 @@ function getDates (input, opts) {
 }
 
 function makeHourBuckets (input, dates, opts) {
+  // TODO Make the start also start at the --start date, if supplied
   _.forEach(Object.keys(dates), date => {
     const dateObj = _.find(input.data, ['date', date])
     // Add the initial time
@@ -122,7 +123,7 @@ function getDuration (buckets, date, hour, arr, key, opts) {
     return null
   }
 
-  const end = (opts && opts.end) ? opts.end : getRecordingEnd(buckets[date][hour][0])
+  let end = (opts && opts.end) ? opts.end : getRecordingEnd(buckets[date][hour][0])
   let start = (opts && opts.start) ? opts.start : getRecordingStart(buckets[date][hour][0])
 
   if (opts && opts.start) {
@@ -132,7 +133,7 @@ function getDuration (buckets, date, hour, arr, key, opts) {
   }
   if (opts && opts.end) {
     if (buckets[date][hour][0] && opts.end.isAfter(getRecordingEnd(buckets[date][hour][0]))) {
-      start = getRecordingEnd(buckets[date][hour][0])
+      end = getRecordingEnd(buckets[date][hour][0])
     }
   }
 
