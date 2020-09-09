@@ -16,6 +16,7 @@ const cli = meow(`
 
   Examples
     $ node createChecklists.js
+    $ node createChecklists.js --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
 `, {
   flags: {
     start: {
@@ -59,28 +60,43 @@ function getDates (input, opts) {
   return dates
 }
 
+function getStart (recordingStart, opts) {
+  if (opts && opts.start && opts.end) {
+    if (opts.start.isSame(recordingStart, 'day') && recordingStart.isBefore(opts.start)) {
+      return opts.start
+    }
+    // If we're starting the recording later, start then, not when the opts says
+  }
+  return recordingStart
+}
+
 function makeHourBuckets (input, dates, opts) {
-  // TODO Make the start also start at the --start date, if supplied
   _.forEach(Object.keys(dates), date => {
     const dateObj = _.find(input.data, ['date', date])
+    const recordingStart = moment(`${dateObj.date} ${dateObj.recording_start}`, 'MM/DD/YY HH:mm:ss')
+    const start = getStart(recordingStart, opts)
     // Add the initial time
-    dates[date][dateObj.recording_start] = []
+    dates[date][start.format('HH:mm:ss')] = []
     // Figure out how many buckets to make
-    const duration = dateObj.recording_length.split(':')[0]
-    const momentDuration = moment.duration({
-      hours: duration,
-      minutes: dateObj.recording_length.split(':')[1],
-      seconds: dateObj.recording_length.split(':')[2]
-    })
-    let startingHour = parseInt(dateObj.recording_start.split(':')[0])
-    const endingHour = moment(`${dateObj.date} ${dateObj.recording_start}`, 'MM/DD/YY hh:mm:ss').add(momentDuration)
+    const duration = moment.duration(dateObj.recording_length)
+    let startingHour = start.hours()
+    let endingHour = recordingStart.add(duration).hours()
+    if (opts && opts.end &&
+      // If it is either today, or if it is tomorrow but before noon
+      (opts.end.isSame(start, 'day') || (opts.end.isSame(moment(start).add(1, 'day'), 'day') && opts.end.isBefore(moment(start).add(1, 'day').hour(12))))) {
+      // This resets for each date, so make sure it doesn't end up making buckets all the way through to the end
+      endingHour = opts.end.hours()
+    }
     // Make an array of the times for that night
     const automaticHourArray = []
     let hourString
-    for (let i = 1; startingHour + i < 24 && i <= endingHour.hour(); (startingHour + i === 23) ? i = 0 : i++) {
+    for (let i = 1; startingHour + i < 24 && i <= endingHour; (startingHour + i === 23) ? i = 0 : i++) {
       hourString = `${startingHour + i}:00:00`
       automaticHourArray.push(hourString)
       if (startingHour + i === 23) {
+        if (endingHour === 23) {
+          break
+        }
         startingHour = 0
         i = -1
       }
@@ -172,17 +188,20 @@ function printResults (input, buckets, opts) {
           counts = _.countBy(buckets[date][hour], 'species')
           Object.keys(counts).forEach(species => {
             const birdEstimate = estimateBirdsCalling(buckets[date][hour], species)
-            if (!totalCounts[species]) {
-              totalCounts[species] = {
+            if (!totalCounts[date]) {
+              totalCounts[date] = {}
+            }
+            if (!totalCounts[date][species]) {
+              totalCounts[date][species] = {
                 NFCs: counts[species],
                 birds: birdEstimate
               }
             } else {
-              totalCounts[species].NFCs += counts[species]
-              totalCounts[species].birds += birdEstimate
+              totalCounts[date][species].NFCs += counts[species]
+              totalCounts[date][species].birds += birdEstimate
             }
 
-            if (species === 'pass') {
+            if (species === '') {
               console.log(`${detector}:\t${birdEstimate}\t(${counts[species]})`)
               // Flag errors often causes by pressing 'N' meaning 'Next'
             } else if (species === 'nowa') {
@@ -196,8 +215,13 @@ function printResults (input, buckets, opts) {
       })
     }
   })
-  Object.keys(totalCounts).forEach(species => {
-    console.log(`${(species === '') ? 'Unidentified tseeps' : species.toUpperCase()}: ${totalCounts[species].birds} ${(totalCounts[species].birds === 1) ? 'bird' : 'birds'}, with ${totalCounts[species].NFCs} total calls.`)
+  // TODO Allow for thrushes, too
+  Object.keys(totalCounts).forEach(date => {
+    console.log(chalk.blue(date + ' totals:'))
+    Object.keys(totalCounts[date]).forEach(species => {
+      console.log(`${(species === '') ? 'Unidentified tseeps' : species.toUpperCase()}: ${totalCounts[date][species].birds} probable ${(totalCounts[date][species].birds === 1) ? 'bird' : 'birds'}, with ${totalCounts[date][species].NFCs} total calls.`)
+    })
+    console.log('')
   })
 }
 
@@ -240,7 +264,7 @@ async function exportResults (input, buckets, opts) {
     'All observations reported?': 'N',
     'Effort Distance Miles': '',
     'Effort area acres': '',
-    'Submission Comments': 'Recorded using an OldBird 21c microphone, recording to a NUC7CHYJ using I-Recorded on Windows 10, at 22050Hz, mono, 16bit. Analyzed using Vesper (https://github.com/HaroldMills/Vesper).'
+    'Submission Comments': 'Recorded using an OldBird 21c microphone, recording to a NUC7CHYJ using I-Recorded on Windows 10, at 22050Hz, mono, 16bit. Calls detected using Vesper (https://github.com/HaroldMills/Vesper). This checklist was created automatically using https://github.com/RichardLitt/vesper-scripts.'
   }
 
   let counts
@@ -256,16 +280,16 @@ async function exportResults (input, buckets, opts) {
           object.Date = moment(date, 'MM/DD/YY').format('M/DD/YYYY')
           object['Start Time'] = hour.split(':').slice(0, 2).join(':')
           object.Duration = getDuration(buckets, date, hour, arr, key, opts)
-          let speciesComment = `${counts[species]} NFC. Detected automatically using Vesper ${input.data[0].detector} detector, available at https://github.com/HaroldMills/Vesper. Manually classified using Vesper by me.`
+          let speciesComment = `${counts[species]} NFC.<br><br> Detected automatically using Vesper ${input.data[0].detector} detector, available at https://github.com/HaroldMills/Vesper. Manually identified using Vesper by me. More justification for this identification available upon request; here, without researching extensively, I was able to identify the call as being very typical of this species, based on known recordings I've seen.`
           // If there is a comment from the comments page, use that
           if (comments[species.toUpperCase()] && !comments[species.toUpperCase()].WIP) {
-            speciesComment = `${counts[species]} NFC. ${comments[species.toUpperCase()].text} All NFC calls identified here follow this pattern, unless noted. If the number of identified calls does not match the NFC count, it is because the calls occurred close enough to each other to make it unclear whether or not a single bird was calling. For more on WIWA NFC identification, consult this checklist ${comments[species.toUpperCase()].example}, or the updated page at https://birdinginvermont.com/nfc-species/${species}.`
+            speciesComment = `${counts[species]} NFC.<br><br> ${comments[species.toUpperCase()].text} All NFC calls identified here follow this pattern, unless noted. If the number of identified calls does not match the NFC count, it is because the calls occurred close enough to each other to make it unclear whether or not a single bird was calling.<br><br> For more on ${species.toUpperCase()} NFC identification, consult this checklist ${comments[species.toUpperCase()].example}, or the updated page at https://birdinginvermont.com/nfc-species/${species}.`
           }
-          object['Species Comments'] = speciesComment
+          object['Species Comments'] = speciesComment.replace(/\n/g, '<br>')
           if (species === '') {
             object['Common Name'] = 'passerine sp.'
           } else if (species === 'nowa') {
-            console.log(chalk.red(`NOWA:\t ${counts[species]}`))
+            console.log(chalk.red(`You saw ${counts[species]} NOWA species - is that right? Or did you click N by accident?`))
           } else {
             object['Common Name'] = codes[species.toUpperCase()]
           }
@@ -275,7 +299,7 @@ async function exportResults (input, buckets, opts) {
     })
   })
 
-  fs.writeFile(`${cli.flags.export}.csv`, Papa.unparse(output, { header: false }), 'utf8')
+  fs.writeFile(`${cli.flags.export.replace(/\.csv/, '')}.csv`, Papa.unparse(output, { header: false }), 'utf8')
 }
 
 async function run () {
@@ -283,7 +307,7 @@ async function run () {
   let opts
   if ((!cli.flags.start && cli.flags.end) || (cli.flags.start && !cli.flags.end)) {
     console.log('You need both a start and an end date')
-    process.end(1)
+    process.exit(1)
   }
   if (cli.flags.start && cli.flags.end) {
     opts = {
@@ -292,15 +316,23 @@ async function run () {
       endingHour: moment(this.end).startOf('hour'),
       finalDuration: moment(this.end).minutes()
     }
+    if (opts.end.isBefore(opts.start)) {
+      console.log('The end cannot precede the beginning.')
+      process.exit(1)
+    }
   }
 
   function putEntryInBucket (entry) {
     // Set the hour to match the bucket name
     let hour = `${date.hour()}:00:00`
-    // The buckey name includes minutes if it's the starting point
-    if (date.hour() === moment(entry.recording_start, 'HH:mm:ss').hour()) {
-      hour = moment(entry.recording_start, 'HH:mm:ss').format('HH:mm:ss')
+    const recordingStart = getStart(moment(entry.date + ' ' + entry.recording_start, 'MM/DD/YY HH:mm:ss'), opts)
+    if (date.isSame(recordingStart, 'hour')) {
+      hour = recordingStart.format('HH:mm:ss')
     }
+    if (opts && opts.start && opts.start.isSame(date, 'hour') && !opts.start.isBefore(date)) {
+      hour = opts.start.format('HH:mm:ss')
+    }
+
     buckets[date.format('MM/DD/YY')][hour].push(entry)
   }
 
@@ -324,7 +356,7 @@ async function run () {
   printResults(input, buckets, opts)
   if (cli.flags.export === '') {
     console.log('Please provide an export file name')
-    process.end(1)
+    process.exit(1)
   }
   if (cli.flags.export) {
     exportResults(input, buckets, opts)
