@@ -61,7 +61,7 @@ function getDates (input, opts) {
 }
 
 function getStart (recordingStart, opts) {
-  if (opts && opts.start && opts.end) {
+  if (opts && opts.start) {
     if (opts.start.isSame(recordingStart, 'day') && recordingStart.isBefore(opts.start)) {
       return opts.start
     }
@@ -71,51 +71,44 @@ function getStart (recordingStart, opts) {
 }
 
 function makeHourBuckets (input, dates, opts) {
-  _.forEach(Object.keys(dates), date => {
+  const newDates = {}
+  for (var k in dates) newDates[k] = {}
+
+  _.forEach(Object.keys(newDates), date => {
+    // It might be more contained for testing to include a dateObj in its own
+    // object, instead of having to send input into this function
     const dateObj = _.find(input.data, ['date', date])
     const recordingStart = moment(`${dateObj.date} ${dateObj.recording_start}`, 'MM/DD/YY HH:mm:ss')
     const start = getStart(recordingStart, opts)
     // Add the initial time
-    dates[date][start.format('HH:mm:ss')] = []
+    newDates[date][start.format('HH:mm:ss')] = []
     // Figure out how many buckets to make
     const duration = moment.duration(dateObj.recording_length)
-    let startingHour = start.hours()
-    let endingHour = recordingStart.add(duration).hours()
+    let end = moment(recordingStart).add(duration)
     if (opts && opts.end &&
       // If it is either today, or if it is tomorrow but before noon
       (opts.end.isSame(start, 'day') || (opts.end.isSame(moment(start).add(1, 'day'), 'day') && opts.end.isBefore(moment(start).add(1, 'day').hour(12))))) {
       // This resets for each date, so make sure it doesn't end up making buckets all the way through to the end
-      endingHour = opts.end.hours()
+      end = opts.end
     }
     // Make an array of the times for that night
-    const automaticHourArray = []
     let hourString
-    for (let i = 1; startingHour + i < 24 && i <= endingHour; (startingHour + i === 23) ? i = 0 : i++) {
-      hourString = `${startingHour + i}:00:00`
-      automaticHourArray.push(hourString)
-      if (startingHour + i === 23) {
-        if (endingHour === 23) {
-          break
+    let dateForHour = date
+    // TODO I can't seem to start at 23:00. This whole thing needs help.
+    for (let i = moment(start).add(1, 'hour').startOf('hour'); moment(i).isBefore(moment(end)); i.add(1, 'hours')) {
+      if (moment(i).isAfter(moment(start), 'day')) {
+        dateForHour = moment(date, 'MM/DD/YY').add(1, 'day').format('MM/DD/YY')
+        if (!newDates[dateForHour]) {
+          newDates[dateForHour] = {
+            '00:00:00': []
+          }
         }
-        startingHour = 0
-        i = -1
       }
+      hourString = `${i.hours().toString().padStart(2, '0')}:00:00`
+      newDates[dateForHour][hourString] = []
     }
-    // Add the times to the date object, for the right day
-    automaticHourArray.forEach(hour => {
-      let newDate
-      if (parseInt(hour.split(':')[0]) >= 12) {
-        dates[date][hour] = []
-      } else {
-        newDate = moment(date, 'MM/DD/YY').add(1, 'day').format('MM/DD/YY')
-        if (!dates[newDate]) {
-          dates[newDate] = {}
-        }
-        dates[newDate][hour] = []
-      }
-    })
   })
-  return dates
+  return newDates
 }
 
 function findDetector (string) {
@@ -324,7 +317,7 @@ async function run () {
 
   function putEntryInBucket (entry) {
     // Set the hour to match the bucket name
-    let hour = `${date.hour()}:00:00`
+    let hour = `${date.hour().toString().padStart(2, '0')}:00:00`
     const recordingStart = getStart(moment(entry.date + ' ' + entry.recording_start, 'MM/DD/YY HH:mm:ss'), opts)
     if (date.isSame(recordingStart, 'hour')) {
       hour = recordingStart.format('HH:mm:ss')
@@ -363,4 +356,9 @@ async function run () {
   }
 }
 
-run()
+// run()
+
+module.exports = {
+  makeHourBuckets,
+  getStart
+}
