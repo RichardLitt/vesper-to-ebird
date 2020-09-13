@@ -187,7 +187,7 @@ function printResults (input, buckets, opts) {
     if (Object.keys(buckets[date]).filter(x => buckets[date][x].length !== 0).length) {
       console.log('')
       console.log(chalk.blue(`Date: ${date}`))
-      Object.keys(buckets[date]).forEach((hour, key, arr) => {
+      Object.keys(buckets[date]).sort().forEach((hour, key, arr) => {
         if (buckets[date][hour].length !== 0) {
           console.log(`Hour: ${chalk.green(hour.split(':').slice(0, 2).join(':'))}`)
           const duration = getDuration(buckets, date, hour, arr, key, opts)
