@@ -57,6 +57,10 @@ describe('makeHourBuckets()', function () {
     it('should not modify the dates object argument', function () {
       assert.deepStrictEqual(dates, { '09/08/20': {} })
     })
+    it('should not return an empty date', function () {
+      const newResult = t.makeHourBuckets({ data: [] }, { '09/08/20': {} })
+      assert.isEmpty(newResult)
+    })
     it('should create a new date for morning times', function () {
       assert.deepStrictEqual(Object.keys(this.test.result)[0], Object.keys(expectedResults)[0])
     })
@@ -135,9 +139,9 @@ describe('makeHourBuckets()', function () {
       assert.isTrue(Object.keys(result['09/08/20']).includes('20:43:00'))
     })
 
-    it('should not start the bucket with the opts start if it is the wrong day', function () {
+    it('should not create buckets if start is after input end time', function () {
       const result = t.makeHourBuckets(input, dates, { start: moment('2020-09-09T20:43:00-04:00') })
-      assert.isTrue(Object.keys(result['09/08/20']).includes('20:43:00'))
+      assert.isEmpty(result)
     })
 
     it('should not create a date for tomorrow if it ends before then', function () {
@@ -147,14 +151,13 @@ describe('makeHourBuckets()', function () {
 
     it('should be able to start tomorrow', function () {
       const result = t.makeHourBuckets(input, dates, { start: moment('2020-09-09T01:43:00-04:00') })
-      console.log('Result', result)
-      assert.isFalse(Object.keys(result).includes('09/08/20'))
+      assert.isTrue(Object.keys(result).includes('09/09/20'))
     })
 
     it('should be able to start and end tomorrow', function () {
-      const result = t.makeHourBuckets(input, dates, { start: moment('2020-09-09T01:43:00-04:00'), end: moment('2020-09-09T04:32:00-04:00') })
-      console.log('Result', result)
+      const result = t.makeHourBuckets(input, dates, { start: moment('2020-09-09T01:43:00-04:00'), end: moment('2020-09-09T02:32:00-04:00') })
       assert.isFalse(Object.keys(result).includes('09/08/20'))
+      assert.hasAllKeys(result['09/09/20'], { '01:43:00': [], '02:00:00': [] })
     })
   })
 })
