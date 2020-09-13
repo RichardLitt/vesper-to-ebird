@@ -74,43 +74,53 @@ function makeHourBuckets (input, dates, opts) {
   _.forEach(Object.keys(newDates), date => {
     // It might be more contained for testing to include a dateObj in its own
     // object, instead of having to send input into this function
-    const dateObj = _.find(input.data, ['date', date])
-    if (dateObj) {
-      const recordingStart = moment(`${dateObj.date} ${dateObj.recording_start}`, 'MM/DD/YY HH:mm:ss')
-      const start = getStart(recordingStart, opts)
-      // Figure out how many buckets to make
-      const duration = moment.duration(dateObj.recording_length)
-      let end = moment(recordingStart).add(duration)
-      if (opts && opts.end &&
-        // If it is either today, or if it is tomorrow but before noon
-        (opts.end.isSame(start, 'day') || (opts.end.isSame(moment(start).add(1, 'day'), 'day') && opts.end.isBefore(moment(start).add(1, 'day').hour(12))))) {
-        // This resets for each date, so make sure it doesn't end up making buckets all the way through to the end
-        end = opts.end
-      }
-      if (start.isBefore(end)) {
-        if (!newDates[start.format('MM/DD/YY')]) {
-          newDates[start.format('MM/DD/YY')] = {}
+
+    // Get any sessions per day. This is normally only , if started and stopped once per night.
+    // TODO Add tests for this
+    const sessions = _.uniq(_.map(_.filter(input.data, e => e.date === date), entry => {
+      return entry.recording_start
+    }))
+
+    sessions.forEach(session => {
+      // This will break if there are multiple different recording_starts per date
+      const dateObj = _.find(_.filter(input.data, e => e.date === date), ['recording_start', session])
+      if (dateObj) {
+        const recordingStart = moment(`${dateObj.date} ${dateObj.recording_start}`, 'MM/DD/YY HH:mm:ss')
+        const start = getStart(recordingStart, opts)
+        // Figure out how many buckets to make
+        const duration = moment.duration(dateObj.recording_length)
+        let end = moment(recordingStart).add(duration)
+        if (opts && opts.end &&
+          // If it is either today, or if it is tomorrow but before noon
+          (opts.end.isSame(start, 'day') || (opts.end.isSame(moment(start).add(1, 'day'), 'day') && opts.end.isBefore(moment(start).add(1, 'day').hour(12))))) {
+          // This resets for each date, so make sure it doesn't end up making buckets all the way through to the end
+          end = opts.end
         }
-        // Add the initial time
-        newDates[start.format('MM/DD/YY')][start.format('HH:mm:ss')] = []
-        // Make an array of the times for that night
-        let hourString
-        let dateForHour = start.format('MM/DD/YY')
-        // TODO I can't seem to start at 23:00. This whole thing needs help.
-        for (let i = moment(start).add(1, 'hour').startOf('hour'); moment(i).isBefore(moment(end)); i.add(1, 'hours')) {
-          if (moment(i).isAfter(moment(start), 'day')) {
-            dateForHour = moment(date, 'MM/DD/YY').add(1, 'day').format('MM/DD/YY')
-            if (!newDates[dateForHour]) {
-              newDates[dateForHour] = {
-                '00:00:00': []
+        if (start.isBefore(end)) {
+          if (!newDates[start.format('MM/DD/YY')]) {
+            newDates[start.format('MM/DD/YY')] = {}
+          }
+          // Add the initial time
+          newDates[start.format('MM/DD/YY')][start.format('HH:mm:ss')] = []
+          // Make an array of the times for that night
+          let hourString
+          let dateForHour = start.format('MM/DD/YY')
+          // TODO I can't seem to start at 23:00. This whole thing needs help.
+          for (let i = moment(start).add(1, 'hour').startOf('hour'); moment(i).isBefore(moment(end)); i.add(1, 'hours')) {
+            if (moment(i).isAfter(moment(start), 'day')) {
+              dateForHour = moment(date, 'MM/DD/YY').add(1, 'day').format('MM/DD/YY')
+              if (!newDates[dateForHour]) {
+                newDates[dateForHour] = {
+                  '00:00:00': []
+                }
               }
             }
+            hourString = `${i.hours().toString().padStart(2, '0')}:00:00`
+            newDates[dateForHour][hourString] = []
           }
-          hourString = `${i.hours().toString().padStart(2, '0')}:00:00`
-          newDates[dateForHour][hourString] = []
         }
       }
-    }
+    })
     if (_.isEmpty(newDates[date])) {
       delete newDates[date]
     }
@@ -173,7 +183,7 @@ function printResults (input, buckets, opts) {
   let counts
   const totalCounts = {}
   const detector = findDetector(input.data[0].detector)
-  Object.keys(buckets).forEach(date => {
+  Object.keys(buckets).sort().forEach(date => {
     if (Object.keys(buckets[date]).filter(x => buckets[date][x].length !== 0).length) {
       console.log('')
       console.log(chalk.blue(`Date: ${date}`))
