@@ -12,11 +12,13 @@ const cli = meow(`
   Options
     --start     The starting time
     --ends      An end time
+    --date      Specify a single date
     --export    Export results to a file
 
   Examples
-    $ node createChecklists.js
-    $ node createChecklists.js --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
+    $ node createChecklists.js output.csv
+    $ node createChecklists.js output.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
+    $ node createChecklists.js output.csv --date="2020/09/08"
 `, {
   flags: {
     start: {
@@ -26,6 +28,9 @@ const cli = meow(`
       type: 'string'
     },
     export: {
+      type: 'string'
+    },
+    date: {
       type: 'string'
     }
   }
@@ -319,12 +324,15 @@ async function run () {
     console.log('You need both a start and an end date')
     process.exit(1)
   }
-  if (cli.flags.start && cli.flags.end) {
+  if (cli.flags.date) {
+    opts = {
+      start: moment(cli.flags.date, 'YYYY/MM/DD').hour(12),
+      end: moment(cli.flags.date, 'YYYY/MM/DD').hour(12).add(1, 'day')
+    }
+  } else if (cli.flags.start && cli.flags.end) {
     opts = {
       start: moment(cli.flags.start, 'YYYY/MM/DD HH:mm:ss'),
-      end: moment(cli.flags.end, 'YYYY/MM/DD HH:mm:ss'),
-      endingHour: moment(this.end).startOf('hour'),
-      finalDuration: moment(this.end).minutes()
+      end: moment(cli.flags.end, 'YYYY/MM/DD HH:mm:ss')
     }
     if (opts.end.isBefore(opts.start)) {
       console.log('The end cannot precede the beginning.')
