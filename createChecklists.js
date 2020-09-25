@@ -303,6 +303,7 @@ async function exportResults (input, buckets, opts) {
           object['Species Comments'] = speciesComment.replace(/\n/g, '<br>')
           if (species === '') {
             object['Common Name'] = 'passerine sp.'
+            object['Species Comments'] = `${counts[species]} NFC.<br><br> Detected automatically using Vesper ${input.data[0].detector} detector, available at https://github.com/HaroldMills/Vesper. All tseeps are given by passerine species, to the best of my knowledge; any extraneous noises were not included in this count. Any call that was within fifteen seconds of another call of the previous call was not counted in the species total in order to ensure under- and not overcounts. The actual number may vary significantly. Vesper may also fail to identify many calls, so accuracy should not be assumed in this call count. The NFC number in this comment is the total amount of calls identifed by Vesper.`
           } else if (species === 'nowa') {
             console.log(chalk.red(`You saw ${counts[species]} NOWA species - is that right? Or did you click N by accident?`))
           } else {

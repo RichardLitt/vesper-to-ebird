@@ -22,9 +22,8 @@
     "WIP": true
   },
   "WIWA": {
-    "text": " 60mS call, which is slightly long, but with a clear inverted V shape with an initial rising section. Depth from 4.7-8.4kHz. Slightly double-banded, without even modulation. Given diurnally as well as nocturnally. Closest similar call would be Canada Warbler with an inverted V followed by a flat modulated section, both of which are lacking clearly here.",
-    "example": "https://ebird.org/checklist/S73062747",
-    "WIP": true
+    "text": "WIWA generally have a 40mS call but with a clear inverted V shape with an initial rising section. Depths from 4.7-8.4kHz. Slightly double-banded, without even modulation. Given diurnally as well as nocturnally. The closest similar call would be Canada Warbler with an inverted V followed by a flat modulated section. Distictive given shape and length.",
+    "example": "https://ebird.org/checklist/S73062747"
   },
   "CMWA": {
     "text": "Cape May Warblers are noted as having a concave downward descending call, with 5-6 humps, an average of 10mS wavelength, duration of 50±10mS, and modulation depth of 300-600Hz, unless noted. Distinctive given wavelength and shape.",
