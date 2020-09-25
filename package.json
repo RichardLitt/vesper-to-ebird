@@ -1,13 +1,16 @@
 {
   "name": "vesper-to-ebird",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Shim Vesper .csv exports into eBird formatted imports for Nocturnal Flight Calls",
   "main": "createChecklists.js",
   "scripts": {
     "test": "mocha test/*.js"
   },
   "bin": "./createChecklists.js",
-  "keywords": ["vesper", "ebird"],
+  "keywords": [
+    "vesper",
+    "ebird"
+  ],
   "author": "Richard Littauer <richard.littauer@gmail.com> (https://burntfen.com)",
   "license": "MIT",
   "dependencies": {
