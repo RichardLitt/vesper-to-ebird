@@ -254,7 +254,7 @@ function estimateBirdsCalling (array, species) {
 }
 
 async function exportResults (input, buckets, opts) {
-  const codesFile = Papa.parse(await fs.readFile('codes.csv', 'utf8'), { header: true })
+  const codesFile = Papa.parse(await fs.readFile('./codes.csv', 'utf8'), { header: true })
   const codes = {}
   _.forEach(codesFile.data, x => {
     codes[x.Code] = x.Species
