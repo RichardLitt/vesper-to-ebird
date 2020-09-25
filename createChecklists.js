@@ -3,6 +3,7 @@ const meow = require('meow')
 const fs = require('fs').promises
 const Papa = require('papaparse')
 const comments = require('./comments.json')
+const codesFile = require('./codes.json')
 const cli = meow(`
   Usage
     $ node createChecklists.js input [opts]
@@ -254,7 +255,6 @@ function estimateBirdsCalling (array, species) {
 }
 
 async function exportResults (input, buckets, opts) {
-  const codesFile = Papa.parse(await fs.readFile('./codes.csv', 'utf8'), { header: true })
   const codes = {}
   _.forEach(codesFile.data, x => {
     codes[x.Code] = x.Species
