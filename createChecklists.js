@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const meow = require('meow')
 const fs = require('fs').promises
 const Papa = require('papaparse')
