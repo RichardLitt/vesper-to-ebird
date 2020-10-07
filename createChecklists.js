@@ -2,8 +2,11 @@
 const meow = require('meow')
 const fs = require('fs').promises
 const Papa = require('papaparse')
-const comments = require('./comments.json')
+const comments = require('./settings.json').species
+const stations = require('./settings.json').stations
+const slashCodes = require('./settings.json').slashCodes
 const codesFile = require('./codes.json')
+
 const cli = meow(`
   Usage
     $ node createChecklists.js input [opts]
@@ -15,6 +18,7 @@ const cli = meow(`
     --start     The starting time
     --ends      An end time
     --date      Specify a single date
+    --station   Specify the station manually
     --export    Export results to a file
 
   Examples
@@ -34,6 +38,10 @@ const cli = meow(`
     },
     date: {
       type: 'string'
+    },
+    station: {
+      type: 'string',
+      default: 'msgr'
     }
   }
 })
@@ -203,7 +211,7 @@ function printResults (input, buckets, opts) {
           }
           console.log('Species\tBirds\tNFCs')
           counts = _.countBy(buckets[date][hour], 'species')
-          Object.keys(counts).forEach(species => {
+          Object.keys(counts).sort((a, b) => a.length - b.length).forEach(species => {
             const birdEstimate = estimateBirdsCalling(buckets[date][hour], species)
             if (!totalCounts[date]) {
               totalCounts[date] = {}
@@ -219,10 +227,12 @@ function printResults (input, buckets, opts) {
             }
 
             if (species === '') {
-              console.log(`${detector}:\t${birdEstimate}\t(${counts[species]})`)
+              console.log(`Unidentified ${detector}:\t${birdEstimate}\t(${counts[species]})`)
               // Flag errors often causes by pressing 'N' meaning 'Next'
             } else if (species === 'nowa') {
               console.log(chalk.red(`NOWA:\t ${counts[species]}`))
+            } else if (species.includes('sp.')) {
+              console.log(`${species.charAt(0).toUpperCase() + species.slice(1)}:\t${birdEstimate}\t(${counts[species]})`)
             } else {
               console.log(`${species.toUpperCase()}:\t${birdEstimate}\t(${counts[species]})`)
             }
@@ -235,8 +245,16 @@ function printResults (input, buckets, opts) {
   // TODO Allow for thrushes, too
   Object.keys(totalCounts).forEach(date => {
     console.log(chalk.blue(date + ' totals:'))
-    Object.keys(totalCounts[date]).forEach(species => {
-      console.log(`${(species === '') ? 'Unidentified tseeps' : species.toUpperCase()}: ${totalCounts[date][species].birds} probable ${(totalCounts[date][species].birds === 1) ? 'bird' : 'birds'}, with ${totalCounts[date][species].NFCs} total calls.`)
+    Object.keys(totalCounts[date]).sort((a, b) => a.length - b.length).forEach(species => {
+      let name
+      if (species === '') {
+        name = `Unidentified ${detector}`
+      } else if (species.includes('sp.')) {
+        name = species.charAt(0).toUpperCase() + species.slice(1)
+      } else {
+        name = species.toUpperCase()
+      }
+      console.log(`${name}: ${totalCounts[date][species].birds} probable ${(totalCounts[date][species].birds === 1) ? 'bird' : 'birds'}, with ${totalCounts[date][species].NFCs} total calls.`)
     })
     console.log('')
   })
@@ -255,7 +273,7 @@ function estimateBirdsCalling (array, species) {
 }
 
 async function exportResults (input, buckets, opts) {
-  const codes = {}
+  const codes = Object.assign(slashCodes)
   _.forEach(codesFile.data, x => {
     codes[x.Code] = x.Species
   })
@@ -267,20 +285,20 @@ async function exportResults (input, buckets, opts) {
     Species: '',
     Number: '', // 38
     'Species Comments': '', // 1 NFC.
-    'Location Name': 'Monsignor Crosby Ave (Yard)', //
-    Latitude: '44.258034',
-    Longitude: '-72.574655',
+    'Location Name': stations[opts.station]['Location Name'],
+    Latitude: stations[opts.station].Latitude,
+    Longitude: stations[opts.station].Longitude,
     Date: '', // 9/7/2020
     'Start Time': '', // 3:00 AM
-    'State/Province': 'VT',
+    'State/Province': stations[opts.station].State,
     'Country Code': 'US',
-    Protocol: 'stationary', // Needs to be changed manually in eBird.
+    Protocol: 'P54', // Code for NFCP.
     'Number of Observers': '1',
     Duration: '', // 60
     'All observations reported?': 'N',
     'Effort Distance Miles': '',
     'Effort area acres': '',
-    'Submission Comments': 'Recorded using an OldBird 21c microphone, recording to a NUC7CHYJ using I-Recorded on Windows 10, at 22050Hz, mono, 16bit. Calls detected using Vesper (https://github.com/HaroldMills/Vesper). This checklist was created automatically using https://github.com/RichardLitt/vesper-scripts.'
+    'Submission Comments': `${stations[opts.station].Kit} Calls detected using Vesper (https://github.com/HaroldMills/Vesper) unless noted. This checklist was created automatically using https://github.com/RichardLitt/vesper-to-ebird.`
   }
 
   let counts
@@ -302,7 +320,7 @@ async function exportResults (input, buckets, opts) {
             speciesComment = `${counts[species]} NFC.<br><br> ${comments[species.toUpperCase()].text} All NFC calls identified here follow this pattern, unless noted. If the number of identified calls does not match the NFC count, it is because the calls occurred close enough to each other to make it unclear whether or not a single bird was calling.<br><br> For more on ${species.toUpperCase()} NFC identification, consult this checklist ${comments[species.toUpperCase()].example}, or the updated page at https://birdinginvermont.com/nfc-species/${species}.`
           }
           object['Species Comments'] = speciesComment.replace(/\n/g, '<br>')
-          if (species === '') {
+          if (species === 'passerine sp.') {
             object['Common Name'] = 'passerine sp.'
             object['Species Comments'] = `${counts[species]} NFC.<br><br> Detected automatically using Vesper ${input.data[0].detector} detector, available at https://github.com/HaroldMills/Vesper. All tseeps are given by passerine species, to the best of my knowledge; any extraneous noises were not included in this count. Any call that was within fifteen seconds of another call of the previous call was not counted in the species total in order to ensure under- and not overcounts. The actual number may vary significantly. Vesper may also fail to identify many calls, so accuracy should not be assumed in this call count. The NFC number in this comment is the total amount of calls identifed by Vesper.`
           } else if (species === 'nowa') {
@@ -321,28 +339,41 @@ async function exportResults (input, buckets, opts) {
 
 async function run () {
   const input = await getData(cli.input[0])
-  let opts
+  const opts = {}
   if ((!cli.flags.start && cli.flags.end) || (cli.flags.start && !cli.flags.end)) {
     console.log('You need both a start and an end date')
     process.exit(1)
   }
   if (cli.flags.date) {
-    opts = {
-      start: moment(cli.flags.date, 'YYYY/MM/DD').hour(12),
-      end: moment(cli.flags.date, 'YYYY/MM/DD').hour(12).add(1, 'day')
-    }
+    opts.start = moment(cli.flags.date, 'YYYY/MM/DD').hour(12)
+    opts.end = moment(cli.flags.date, 'YYYY/MM/DD').hour(12).add(1, 'day')
   } else if (cli.flags.start && cli.flags.end) {
-    opts = {
-      start: moment(cli.flags.start, 'YYYY/MM/DD HH:mm:ss'),
-      end: moment(cli.flags.end, 'YYYY/MM/DD HH:mm:ss')
-    }
+    opts.start = moment(cli.flags.start, 'YYYY/MM/DD HH:mm:ss')
+    opts.end = moment(cli.flags.end, 'YYYY/MM/DD HH:mm:ss')
     if (opts.end.isBefore(opts.start)) {
       console.log('The end cannot precede the beginning.')
       process.exit(1)
     }
   }
+  opts.station = (cli.flags.station) ? cli.flags.station : 'msgr'
+
+  // Shim what Vesper can identify to the nearest eBird taxonomic designation
+  function taxonomicMatching (designation) {
+    if (designation === '') {
+      designation = 'passerine sp.' // Both tseep and thrush classifiers default to passerine. Some issues - swallows? Cuckoos?
+    } else if (designation === 'unkn') {
+      designation = 'bird sp.' // This will default to passerine sp., based on tseep and thrush sp mostly naming these species.
+    } else if (designation === 'zeep') {
+      designation = 'warbler sp.' // All zeeps are warblers.
+    } else if (designation === 'peep') {
+      designation = 'peep sp.'
+    } // else if (Object.keys(slashCodes).includes(designation)) {
+    // designation = designation // No need to catch this here
+    return designation
+  }
 
   function putEntryInBucket (entry) {
+    entry.species = taxonomicMatching(entry.species)
     // Set the hour to match the bucket name
     let hour = `${date.hour().toString().padStart(2, '0')}:00:00`
     const recordingStart = getStart(moment(entry.date + ' ' + entry.recording_start, 'MM/DD/YY HH:mm:ss'), opts)
