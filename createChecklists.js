@@ -22,9 +22,11 @@ const cli = meow(`
     --export    Export results to a file
 
   Examples
-    $ node createChecklists.js output.csv
-    $ node createChecklists.js output.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
-    $ node createChecklists.js output.csv --date="2020/09/08"
+    $ node createChecklists.js input.csv
+    $ node createChecklists.js input.csv,input2.csv
+    $ node createChecklists.js input.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
+    $ node createChecklists.js input.csv --date="2020/09/08"
+    $ node createChecklists.js input.csv --station="NBNC"
 `, {
   flags: {
     start: {
