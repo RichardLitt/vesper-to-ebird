@@ -50,11 +50,17 @@ const moment = require('moment')
 const chalk = require('chalk')
 
 async function getData (input) {
-  input = await fs.readFile(input, 'utf8')
-  input = Papa.parse(input, { header: true })
-  // Remove newline at end of file
-  input.data = input.data.filter(x => x.season !== '')
-  return input
+  const files = input.split(',')
+  let data = []
+
+  for (let file in files) {
+    file = await fs.readFile(files[file], 'utf8')
+    file = Papa.parse(file, { header: true })
+    // Remove newline at end of file
+    data = data.concat(file.data.filter(x => x.season !== ''))
+  }
+
+  return data
 }
 
 function getDates (input, opts) {
@@ -92,13 +98,13 @@ function makeHourBuckets (input, dates, opts) {
 
     // Get any sessions per day. This is normally only , if started and stopped once per night.
     // TODO Add tests for this
-    const sessions = _.uniq(_.map(_.filter(input.data, e => e.date === date), entry => {
+    const sessions = _.uniq(_.map(_.filter(input, e => e.date === date), entry => {
       return entry.recording_start
     }))
 
     sessions.forEach(session => {
       // This will break if there are multiple different recording_starts per date
-      const dateObj = _.find(_.filter(input.data, e => e.date === date), ['recording_start', session])
+      const dateObj = _.find(_.filter(input, e => e.date === date), ['recording_start', session])
       if (dateObj) {
         const recordingStart = moment(`${dateObj.date} ${dateObj.recording_start}`, 'MM/DD/YY HH:mm:ss')
         const start = getStart(recordingStart, opts)
@@ -141,10 +147,6 @@ function makeHourBuckets (input, dates, opts) {
     }
   })
   return newDates
-}
-
-function findDetector (string) {
-  return (string === 'tseep') ? 'Tseeps' : 'Thrushes'
 }
 
 function getDuration (buckets, date, hour, arr, key, opts) {
@@ -197,7 +199,6 @@ function getDuration (buckets, date, hour, arr, key, opts) {
 function printResults (input, buckets, opts) {
   let counts
   const totalCounts = {}
-  const detector = findDetector(input.data[0].detector)
   Object.keys(buckets).sort().forEach(date => {
     if (Object.keys(buckets[date]).filter(x => buckets[date][x].length !== 0).length) {
       console.log('')
@@ -226,10 +227,11 @@ function printResults (input, buckets, opts) {
               totalCounts[date][species].birds += birdEstimate
             }
 
-            if (species === '') {
-              console.log(`Unidentified ${detector}:\t${birdEstimate}\t(${counts[species]})`)
-              // Flag errors often causes by pressing 'N' meaning 'Next'
-            } else if (species === 'nowa') {
+            // This shows how many thrushes or tseeps were called
+            // console.log(_.countBy(buckets[date][hour], value => value.detector))
+
+            // Flag errors often causes by pressing 'N' meaning 'Next'
+            if (species === 'nowa') {
               console.log(chalk.red(`NOWA:\t ${counts[species]}`))
             } else if (species.includes('sp.')) {
               console.log(`${species.charAt(0).toUpperCase() + species.slice(1)}:\t${birdEstimate}\t(${counts[species]})`)
@@ -242,14 +244,12 @@ function printResults (input, buckets, opts) {
       })
     }
   })
-  // TODO Allow for thrushes, too
+
   Object.keys(totalCounts).forEach(date => {
     console.log(chalk.blue(date + ' totals:'))
     Object.keys(totalCounts[date]).sort((a, b) => a.length - b.length).forEach(species => {
       let name
-      if (species === '') {
-        name = `Unidentified ${detector}`
-      } else if (species.includes('sp.')) {
+      if (species.includes('sp.')) {
         name = species.charAt(0).toUpperCase() + species.slice(1)
       } else {
         name = species.toUpperCase()
@@ -314,15 +314,15 @@ async function exportResults (input, buckets, opts) {
           object.Date = moment(date, 'MM/DD/YY').format('M/DD/YYYY')
           object['Start Time'] = hour.split(':').slice(0, 2).join(':')
           object.Duration = getDuration(buckets, date, hour, arr, key, opts)
-          let speciesComment = `${counts[species]} NFC.<br><br> Detected automatically using Vesper ${input.data[0].detector} detector, available at https://github.com/HaroldMills/Vesper. Manually identified using Vesper by me. More justification for this identification available upon request; here, without researching extensively, I was able to identify the call as being very typical of this species, based on known recordings I've seen.`
+          let speciesComment = `${counts[species]} NFC.<br><br> Detected automatically using Vesper, available at https://github.com/HaroldMills/Vesper. Classified manually using Vesper by me. More justification for this identification available upon request; here, without researching extensively, I was able to identify the call as being very typical of this species, based on known recordings I've seen.`
           // If there is a comment from the comments page, use that
           if (comments[species.toUpperCase()] && !comments[species.toUpperCase()].WIP) {
             speciesComment = `${counts[species]} NFC.<br><br> ${comments[species.toUpperCase()].text} All NFC calls identified here follow this pattern, unless noted. If the number of identified calls does not match the NFC count, it is because the calls occurred close enough to each other to make it unclear whether or not a single bird was calling.<br><br> For more on ${species.toUpperCase()} NFC identification, consult this checklist ${comments[species.toUpperCase()].example}, or the updated page at https://birdinginvermont.com/nfc-species/${species}.`
           }
           object['Species Comments'] = speciesComment.replace(/\n/g, '<br>')
-          if (species === 'passerine sp.') {
-            object['Common Name'] = 'passerine sp.'
-            object['Species Comments'] = `${counts[species]} NFC.<br><br> Detected automatically using Vesper ${input.data[0].detector} detector, available at https://github.com/HaroldMills/Vesper. All tseeps are given by passerine species, to the best of my knowledge; any extraneous noises were not included in this count. Any call that was within fifteen seconds of another call of the previous call was not counted in the species total in order to ensure under- and not overcounts. The actual number may vary significantly. Vesper may also fail to identify many calls, so accuracy should not be assumed in this call count. The NFC number in this comment is the total amount of calls identifed by Vesper.`
+          if (species.includes('sp.')) {
+            object['Common Name'] = taxonomicMatching.commonName(species)
+            object['Species Comments'] = `${counts[species]} NFC.<br><br> Detected automatically in the sound file using Vesper, available at https://github.com/HaroldMills/Vesper. Classified manually by me. All tseeps and most thrush calls are given by passerine species, to the best of my knowledge; any extraneous noises were not included in this count. Any call that was within fifteen seconds of another call of the previous call was not counted in the species total in order to ensure under- and not overcounts. The actual number may vary significantly. Vesper may also fail to identify many calls, so accuracy should not be assumed in this call count. The NFC number in this comment is the total amount of calls identifed by Vesper.`
           } else if (species === 'nowa') {
             console.log(chalk.red(`You saw ${counts[species]} NOWA species - is that right? Or did you click N by accident?`))
           } else {
@@ -335,6 +335,41 @@ async function exportResults (input, buckets, opts) {
   })
 
   fs.writeFile(`${cli.flags.export.replace(/\.csv/, '')}.csv`, Papa.unparse(output, { header: false }), 'utf8')
+}
+
+// Shim what Vesper can identify to the nearest eBird taxonomic designation
+const taxonomicMatching = {
+  species: function () {
+    return Object.keys(this.matches)
+  },
+  matches: {
+    '': 'passerine sp.', // Both tseep and thrush classifiers default to passerine. Some issues - swallows? Cuckoos?
+    unkn: 'bird sp.', // This will default to passerine sp., based on tseep and thrush sp mostly naming these species.
+    zeep: 'warbler sp.', // All zeeps are warblers.
+    sparrow: 'sparrow sp.',
+    peep: 'peep sp.'
+  },
+  commonName: function (designation) {
+    if (this.species().includes(designation)) {
+      return this.matches[designation]
+    }
+    return designation
+  }
+}
+
+function putEntryInBucket (entry, date, buckets, opts) {
+  entry.species = taxonomicMatching.commonName(entry.species)
+  // Set the hour to match the bucket name
+  let hour = `${date.hour().toString().padStart(2, '0')}:00:00`
+  const recordingStart = getStart(moment(entry.date + ' ' + entry.recording_start, 'MM/DD/YY HH:mm:ss'), opts)
+  if (date.isSame(recordingStart, 'hour')) {
+    hour = recordingStart.format('HH:mm:ss')
+  }
+  if (opts && opts.start && opts.start.isSame(date, 'hour') && !opts.start.isBefore(date)) {
+    hour = opts.start.format('HH:mm:ss')
+  }
+
+  buckets[date.format('MM/DD/YY')][hour].push(entry)
 }
 
 async function run () {
@@ -357,54 +392,25 @@ async function run () {
   }
   opts.station = (cli.flags.station) ? cli.flags.station : 'msgr'
 
-  // Shim what Vesper can identify to the nearest eBird taxonomic designation
-  function taxonomicMatching (designation) {
-    if (designation === '') {
-      designation = 'passerine sp.' // Both tseep and thrush classifiers default to passerine. Some issues - swallows? Cuckoos?
-    } else if (designation === 'unkn') {
-      designation = 'bird sp.' // This will default to passerine sp., based on tseep and thrush sp mostly naming these species.
-    } else if (designation === 'zeep') {
-      designation = 'warbler sp.' // All zeeps are warblers.
-    } else if (designation === 'peep') {
-      designation = 'peep sp.'
-    } // else if (Object.keys(slashCodes).includes(designation)) {
-    // designation = designation // No need to catch this here
-    return designation
-  }
-
-  function putEntryInBucket (entry) {
-    entry.species = taxonomicMatching(entry.species)
-    // Set the hour to match the bucket name
-    let hour = `${date.hour().toString().padStart(2, '0')}:00:00`
-    const recordingStart = getStart(moment(entry.date + ' ' + entry.recording_start, 'MM/DD/YY HH:mm:ss'), opts)
-    if (date.isSame(recordingStart, 'hour')) {
-      hour = recordingStart.format('HH:mm:ss')
-    }
-    if (opts && opts.start && opts.start.isSame(date, 'hour') && !opts.start.isBefore(date)) {
-      hour = opts.start.format('HH:mm:ss')
-    }
-
-    buckets[date.format('MM/DD/YY')][hour].push(entry)
-  }
-
-  const dates = getDates(input.data, opts)
+  const dates = getDates(input, opts)
 
   // Put all of the sightings into collections of hours
   // This is because eBird requests all checklists be under an hour
   const buckets = makeHourBuckets(input, dates, opts)
   let date
-  input.data.forEach(entry => {
+  input.forEach(entry => {
     date = moment(entry.real_detection_time, 'MM/DD/YY HH:mm:ss')
     if (opts && opts.start && opts.end) {
       if (date.isBetween(opts.start, opts.end)) {
-        putEntryInBucket(entry)
+        putEntryInBucket(entry, date, buckets, opts)
       }
     } else {
-      putEntryInBucket(entry)
+      putEntryInBucket(entry, date, buckets, opts)
     }
   })
 
   printResults(input, buckets, opts)
+
   if (cli.flags.export === '') {
     console.log('Please provide an export file name')
     process.exit(1)
