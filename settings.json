@@ -7,37 +7,11 @@
     "BAWW": {
       "text": "BAWW NFCs are generally distinctive and easy to identify. They are two-parted, with a dip in the beginning and a level area at the end. Ruling out similar species follows this rubric:\n(1) Two parted (rules out NOWA, LOWA, KEWA, CSWA). If two-partedness does not involve tail, rules out BWWA. If two-partedness does not include modulation changes, rules out GWWA.\n(2) Wavelength under 4.1mS (rules out NOWA, LOWA, KEWA, CSWA)\n(3) More than 10 waves (rules out NOWA, LOWA, BLPW, KEWA).",
       "example": "https://ebird.org/checklist/S72442802"
-    },
-    "BBWA": {
-      "text": "Bay-breasted Warblers have a tseep-like call, with two humps, level or slightly descending, with a wavelength of 19mS+, a frequency of 7.2±.6kHz, single- or lightly double-banded, length of 60±10mS, unless otherwise noted. Landsborough (2017) found BBWA was the only warbler in the tseep complex which gave a call over 19mS in wavelength.",
-      "example": "https://ebird.org/checklist/S72601022"
-    },
-    "CAWA": {
-      "text": "Canada Warblers have a distinctively shaped call, with an initial V dropping down to 4kHz~, then leveling out to 6.5k±5Hz, with light modulation with a depth of 750Hz~ and two to five humps. Any depth of the V less than 3.4kHz can rule out WIWA and COYE, and a length longer than 40mS can rule out WIWA. ",
-      "example": "https://ebird.org/checklist/S73101280"
-    },
-    "OVEN": {
-      "text": "All OVEN calls level out at 7±.5kHz, with 4-6 modulations, with a short descent and fast ascent to a level area, causing the distinctive \"tadpole tail\", and are single banded.",
-      "example": "",
-      "WIP": true
-    },
-    "WIWA": {
-      "text": "WIWA generally have a 40mS call but with a clear inverted V shape with an initial rising section. Depths from 4.7-8.4kHz. Slightly double-banded, without even modulation. Given diurnally as well as nocturnally. The closest similar call would be Canada Warbler with an inverted V followed by a flat modulated section. Distictive given shape and length.",
-      "example": "https://ebird.org/checklist/S73062747"
-    },
-    "CMWA": {
-      "text": "Cape May Warblers are noted as having a concave downward descending call, with 5-6 humps, an average of 10mS wavelength, duration of 50±10mS, and modulation depth of 300-600Hz, unless noted. Distinctive given wavelength and shape.",
-      "example": "https://ebird.org/checklist/S72601022"
     }
   },
   "stations": {
-    "msgr": {
-      "Location Name": "Monsignor Crosby Avenue (Yard)",
-      "Latitude": "44.258034",
-      "Longitude": "-72.574655",
-      "Kit": "Recorded using an OldBird 21c microphone, recording to a NUC7CHYJ using I-Recorder on Windows 10, at 22050Hz, mono, 16bit."
-    },
-    "nbnc": {
+    "NBNC": {
+      "note": "This is only an example. Please use your own location!",
       "Location Name": "North Branch Nature Center",
       "Latitude": "44.258040",
       "Longitude": "-72.574440",

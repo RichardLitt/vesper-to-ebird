@@ -6,7 +6,7 @@ const codesFile = require('./codes.json')
 
 const cli = meow(`
   Usage
-    $ node createChecklists.js input [opts]
+    $ vesper-to-ebird input [opts]
 
   Arguments
     input        The input file
@@ -20,14 +20,19 @@ const cli = meow(`
     --export     Export results to a file
 
   Examples
-    $ node createChecklists.js input.csv
-    $ node createChecklists.js input.csv,input2.csv
-    $ node createChecklists.js input.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
-    $ node createChecklists.js input.csv --date="2020/09/08"
-    $ node createChecklists.js input.csv --station="NBNC"
-    $ node createChecklists.js --config ~/mytotallysecret/settings.json input.csv --date="2020/09/08"
+    $ vesper-to-ebird input.csv
+    $ vesper-to-ebird input.csv,input2.csv
+    $ vesper-to-ebird input.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
+    $ vesper-to-ebird input.csv --date="2020/09/08"
+    $ vesper-to-ebird input.csv --station="NBNC"
+    $ vesper-to-ebird --config ~/mytotallysecret/settings.json input.csv --date="2020/09/08"
+    $ VESPER_TO_EBIRD_SETTINGS=~/mytotallysecret/settings.json vesper-to-ebird input.csv --date="2020/09/08"
 `, {
   flags: {
+    config: {
+      type: 'string',
+      alias: 'c'
+    },
     start: {
       type: 'string'
     },
@@ -35,14 +40,16 @@ const cli = meow(`
       type: 'string'
     },
     export: {
-      type: 'string'
+      type: 'string',
+      alias: 'e'
     },
     date: {
-      type: 'string'
+      type: 'string',
+      alias: 'd'
     },
     station: {
       type: 'string',
-      default: 'msgr'
+      default: 'NBNC'
     }
   }
 })
