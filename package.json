@@ -1,6 +1,6 @@
 {
   "name": "vesper-to-ebird",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Shim Vesper .csv exports into eBird formatted imports for Nocturnal Flight Calls",
   "main": "createChecklists.js",
   "scripts": {
