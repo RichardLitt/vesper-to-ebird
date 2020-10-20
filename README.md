@@ -12,6 +12,7 @@ Arguments
   input       The input file
 
 Options
+  --config    Path to a configuration json file
   --start     The starting time
   --ends      An end time
   --date      Specify a single date
@@ -28,6 +29,19 @@ Examples
 
 The settings file represents an individual setup, with examples in [./settings.json](./settings.json)
 
+Specific settings can be used via the command line option `--config`, passing a path to a viable json file, or by settins the `VESPER_TO_EBIRD_SETTINGS` as a path to the desired configuration file. Below are examples of each.
+
+`--config`
+```
+$ node createChecklists.js --config ~/.birdzallday/settings.json output.csv
+```
+
+`ENV variable`
+
+```
+$ export VESPER_TO_EBIRD_SETTINGS=~/.birdzallday/settings.json
+$ node createChecklists.js output.csv
+```
 
 ## Contribute
 
