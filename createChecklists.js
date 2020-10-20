@@ -46,18 +46,25 @@ const cli = meow(`
     }
   }
 })
-function settings(path) {
-  if(process.env["VESPER_TO_EBIRD_SETTINGS"]!==""){
+
+/**
+ * settings evaluates the location of settings in this order: ENV, cli, default
+ *
+ * @param {*} path file URL for settings
+ */
+function settings (path) {
+  if (process.env.VESPER_TO_EBIRD_SETTINGS !== '') {
     // user has provided their own settings file via environment variable
-    return process.env["VESPER_TO_EBIRD_SETTINGS"]
-  } else if  (cli.flags.config) {
+    return process.env.VESPER_TO_EBIRD_SETTINGS
+  } else if (cli.flags.config) {
     // user has provided their own settings file via cli option
     return cli.flags.config
   } else {
     // return the default settings file
-    return "./settings.json"
+    return './settings.json'
   }
 }
+
 const comments = require(settings()).species
 const stations = require(settings()).stations
 const slashCodes = require(settings()).slashCodes
