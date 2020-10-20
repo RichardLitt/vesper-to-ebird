@@ -75,6 +75,7 @@ function settings (path) {
 const comments = require(settings()).species
 const stations = require(settings()).stations
 const slashCodes = require(settings()).slashCodes
+
 const _ = require('lodash')
 const moment = require('moment')
 const chalk = require('chalk')
@@ -420,7 +421,8 @@ async function run () {
       process.exit(1)
     }
   }
-  opts.station = (cli.flags.station) ? cli.flags.station : 'msgr'
+  // TODO Validate better, default to one in settings, let us know what one you're using if more than two
+  opts.station = (cli.flags.station) ? cli.flags.station : 'NBNC'
 
   const dates = getDates(input, opts)
 
