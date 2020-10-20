@@ -12,7 +12,7 @@ const cli = meow(`
     input        The input file
 
   Options
-    --config, -c Optional path containing configuration
+    --config     Optional path containing configuration
     --start      The starting time
     --ends       An end time
     --date       Specify a single date
@@ -25,7 +25,7 @@ const cli = meow(`
     $ node createChecklists.js input.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
     $ node createChecklists.js input.csv --date="2020/09/08"
     $ node createChecklists.js input.csv --station="NBNC"
-    $ node createChecklists.js --config ~/mytotallysecret/settings.json output.csv --date="2020/09/08"
+    $ node createChecklists.js --config ~/mytotallysecret/settings.json input.csv --date="2020/09/08"
 `, {
   flags: {
     start: {
