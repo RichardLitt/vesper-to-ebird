@@ -2,9 +2,6 @@
 const meow = require('meow')
 const fs = require('fs').promises
 const Papa = require('papaparse')
-const comments = require('./settings.json').species
-const stations = require('./settings.json').stations
-const slashCodes = require('./settings.json').slashCodes
 const codesFile = require('./codes.json')
 
 const cli = meow(`
@@ -12,19 +9,21 @@ const cli = meow(`
     $ node createChecklists.js input [opts]
 
   Arguments
-    input       The input file
+    input        The input file
 
   Options
-    --start     The starting time
-    --ends      An end time
-    --date      Specify a single date
-    --station   Specify the station manually
-    --export    Export results to a file
+    --config, -c Optional path containing configuration
+    --start      The starting time
+    --ends       An end time
+    --date       Specify a single date
+    --station    Specify the station manually
+    --export     Export results to a file
 
   Examples
     $ node createChecklists.js output.csv
     $ node createChecklists.js output.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
     $ node createChecklists.js output.csv --date="2020/09/08"
+    $ node createChecklists.js -c ~/mytotallysecret/settings.json output.csv --date="2020/09/08"
 `, {
   flags: {
     start: {
@@ -45,6 +44,21 @@ const cli = meow(`
     }
   }
 })
+function settings(path) {
+  if(process.env["VESPER_TO_EBIRD_SETTINGS"]!==""){
+    // user has provided their own settings file via environment variable
+    return process.env["VESPER_TO_EBIRD_SETTINGS"]
+  } else if  (cli.flags.config) {
+    // user has provided their own settings file via cli option
+    return cli.flags.config
+  } else {
+    // return the default settings file
+    return "./settings.json"
+  }
+}
+const comments = require(settings()).species
+const stations = require(settings()).stations
+const slashCodes = require(settings()).slashCodes
 const _ = require('lodash')
 const moment = require('moment')
 const chalk = require('chalk')

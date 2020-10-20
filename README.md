@@ -21,7 +21,13 @@ Examples
   $ node createChecklists.js output.csv
   $ node createChecklists.js output.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
   $ node createChecklists.js output.csv --date="2020/09/08"
+  $ node createChecklists.js -c ~/mytotallysecret/settings.json output.csv --date="2020/09/08"
 ```
+
+### Settings
+
+The settings file represents an individual setup, with examples in [./settings.json](./settings.json)
+
 
 ## Contribute
 
