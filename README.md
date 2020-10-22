@@ -13,7 +13,7 @@ Usage
   $ vesper-to-ebird input [opts]
 
 Arguments
-  input       The input file
+  input        The input file or files, space delimited
 
 Options
   --config     Optional path containing configuration
@@ -25,8 +25,8 @@ Options
 
 Examples
     $ vesper-to-ebird input.csv
-    $ vesper-to-ebird input.csv,input2.csv
-    $ vesper-to-ebird input.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
+    $ vesper-to-ebird input.csv input2.csv
+    $ vesper-to-ebird input.csv --start="2020/09/04 21:30:00" --stop="2020/09/07 23:00:00" --export="2020-09-07 recorded"
     $ vesper-to-ebird input.csv --date="2020/09/08"
     $ vesper-to-ebird input.csv --station="NBNC"
     $ vesper-to-ebird --config ~/mytotallysecret/settings.json input.csv --date="2020/09/08"

@@ -9,7 +9,7 @@ const cli = meow(`
     $ vesper-to-ebird input [opts]
 
   Arguments
-    input        The input file
+    input        The input file or files, space delimited
 
   Options
     --config     Optional path containing configuration
@@ -21,8 +21,8 @@ const cli = meow(`
 
   Examples
     $ vesper-to-ebird input.csv
-    $ vesper-to-ebird input.csv,input2.csv
-    $ vesper-to-ebird input.csv --start="2020/09/04 21:30:00" --end="2020/09/07 23:00:00" --export="2020-09-07 recorded"
+    $ vesper-to-ebird input.csv input2.csv
+    $ vesper-to-ebird input.csv --start="2020/09/04 21:30:00" --stop="2020/09/07 23:00:00" --export="2020-09-07 recorded"
     $ vesper-to-ebird input.csv --date="2020/09/08"
     $ vesper-to-ebird input.csv --station="NBNC"
     $ vesper-to-ebird --config ~/mytotallysecret/settings.json input.csv --date="2020/09/08"
@@ -81,11 +81,10 @@ const moment = require('moment')
 const chalk = require('chalk')
 
 async function getData (input) {
-  const files = input.split(',')
   let data = []
 
-  for (let file in files) {
-    file = await fs.readFile(files[file], 'utf8')
+  for (let file in input) {
+    file = await fs.readFile(input[file], 'utf8')
     file = Papa.parse(file, { header: true })
     // Remove newline at end of file
     data = data.concat(file.data.filter(x => x.season !== ''))
@@ -404,7 +403,7 @@ function putEntryInBucket (entry, date, buckets, opts) {
 }
 
 async function run () {
-  const input = await getData(cli.input[0])
+  const input = await getData(cli.input)
   const opts = {}
   if ((!cli.flags.start && cli.flags.end) || (cli.flags.start && !cli.flags.end)) {
     console.log('You need both a start and an end date')
