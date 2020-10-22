@@ -14,7 +14,7 @@ const cli = meow(`
   Options
     --config     Optional path containing configuration
     --start      The starting time
-    --ends       An end time
+    --stop       An end time
     --date       Specify a single date
     --station    Specify the station manually
     --export     Export results to a file
@@ -36,7 +36,7 @@ const cli = meow(`
     start: {
       type: 'string'
     },
-    end: {
+    stop: {
       type: 'string'
     },
     export: {

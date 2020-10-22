@@ -16,12 +16,12 @@ Arguments
   input       The input file
 
 Options
-  --config    Path to a configuration json file
-  --start     The starting time
-  --ends      An end time
-  --date      Specify a single date
-  --station   Specify the station manually
-  --export    Export results to a file
+  --config     Optional path containing configuration
+  --start      The starting time
+  --stop       An end time
+  --date       Specify a single date
+  --station    Specify the station manually
+  --export     Export results to a file
 
 Examples
     $ vesper-to-ebird input.csv
