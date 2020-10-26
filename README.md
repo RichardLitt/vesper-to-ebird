@@ -4,7 +4,13 @@ This tool automatically converts [Vesper](https://github.com/HaroldMills/vesper)
 
 ## Install
 
+You need to have [Node.js](https://nodejs.org/en/) installed on your computer to use this program. Once you have node, you will automatically have npm installed, too. From your terminal, run this command:
+
 `npm i -g vesper-to-ebird`
+
+You will need to be comfortable with using your Terminal. I am not familiar with how to run this on Windows; I would suggest using something like [Git BASH](https://gitforwindows.org/) for using Bash and Node on Windows.
+
+You'll also need to have Vesper installed and running; the input files this program expects can be exported as CSV files from Vesper's web client.
 
 ## Usage
 
