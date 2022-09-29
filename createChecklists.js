@@ -96,8 +96,8 @@ async function getData (input) {
 function getDates (input, opts) {
   const dates = {}
   const unique = _.uniq(_.map(input, (x) => {
-    if (opts && opts.start && opts.end) {
-      if (moment(x.real_detection_time, 'MM/DD/YY HH:mm:ss').isBetween(opts.start, opts.end)) {
+    if (opts && opts.start && opts.stop) {
+      if (moment(x.real_detection_time, 'MM/DD/YY HH:mm:ss').isBetween(opts.start, opts.stop)) {
         return x.date
       }
       // Drop any dates which don't match
@@ -141,11 +141,11 @@ function makeHourBuckets (input, dates, opts) {
         // Figure out how many buckets to make
         const duration = moment.duration(dateObj.recording_length)
         let end = moment(recordingStart).add(duration)
-        if (opts && opts.end &&
+        if (opts && opts.stop &&
           // If it is either today, or if it is tomorrow but before noon
-          (opts.end.isSame(start, 'day') || (opts.end.isSame(moment(start).add(1, 'day'), 'day') && opts.end.isBefore(moment(start).add(1, 'day').hour(12))))) {
+          (opts.stop.isSame(start, 'day') || (opts.stop.isSame(moment(start).add(1, 'day'), 'day') && opts.stop.isBefore(moment(start).add(1, 'day').hour(12))))) {
           // This resets for each date, so make sure it doesn't end up making buckets all the way through to the end
-          end = opts.end
+          end = opts.stop
         }
         if (start.isBefore(end)) {
           if (!newDates[start.format('MM/DD/YY')]) {
@@ -196,7 +196,7 @@ function getDuration (buckets, date, hour, arr, key, opts) {
     return null
   }
 
-  let end = (opts && opts.end) ? opts.end : getRecordingEnd(buckets[date][hour][0])
+  let end = (opts && opts.stop) ? opts.stop : getRecordingEnd(buckets[date][hour][0])
   let start = (opts && opts.start) ? opts.start : getRecordingStart(buckets[date][hour][0])
 
   if (opts && opts.start) {
@@ -204,8 +204,8 @@ function getDuration (buckets, date, hour, arr, key, opts) {
       start = getRecordingStart(buckets[date][hour][0])
     }
   }
-  if (opts && opts.end) {
-    if (buckets[date][hour][0] && opts.end.isAfter(getRecordingEnd(buckets[date][hour][0]))) {
+  if (opts && opts.stop) {
+    if (buckets[date][hour][0] && opts.stop.isAfter(getRecordingEnd(buckets[date][hour][0]))) {
       end = getRecordingEnd(buckets[date][hour][0])
     }
   }
@@ -375,7 +375,7 @@ const taxonomicMatching = {
   matches: {
     '': 'passerine sp.', // Both tseep and thrush classifiers default to passerine. Some issues - swallows? Cuckoos?
     unkn: 'bird sp.', // This will default to passerine sp., based on tseep and thrush sp mostly naming these species.
-    zeep: 'warbler sp.', // All zeeps are warblers.
+    zeep: 'warbler sp. (Parulidae sp.)', // All zeeps are warblers.
     sparrow: 'sparrow sp.',
     peep: 'peep sp.'
   },
@@ -405,17 +405,17 @@ function putEntryInBucket (entry, date, buckets, opts) {
 async function run () {
   const input = await getData(cli.input)
   const opts = {}
-  if ((!cli.flags.start && cli.flags.end) || (cli.flags.start && !cli.flags.end)) {
+  if ((!cli.flags.start && cli.flags.stop) || (cli.flags.start && !cli.flags.stop)) {
     console.log('You need both a start and an end date')
     process.exit(1)
   }
   if (cli.flags.date) {
     opts.start = moment(cli.flags.date, 'YYYY/MM/DD').hour(12)
-    opts.end = moment(cli.flags.date, 'YYYY/MM/DD').hour(12).add(1, 'day')
-  } else if (cli.flags.start && cli.flags.end) {
+    opts.stop = moment(cli.flags.date, 'YYYY/MM/DD').hour(12).add(1, 'day')
+  } else if (cli.flags.start && cli.flags.stop) {
     opts.start = moment(cli.flags.start, 'YYYY/MM/DD HH:mm:ss')
-    opts.end = moment(cli.flags.end, 'YYYY/MM/DD HH:mm:ss')
-    if (opts.end.isBefore(opts.start)) {
+    opts.stop = moment(cli.flags.stop, 'YYYY/MM/DD HH:mm:ss')
+    if (opts.stop.isBefore(opts.start)) {
       console.log('The end cannot precede the beginning.')
       process.exit(1)
     }
@@ -431,8 +431,8 @@ async function run () {
   let date
   input.forEach(entry => {
     date = moment(entry.real_detection_time, 'MM/DD/YY HH:mm:ss')
-    if (opts && opts.start && opts.end) {
-      if (date.isBetween(opts.start, opts.end)) {
+    if (opts && opts.start && opts.stop) {
+      if (date.isBetween(opts.start, opts.stop)) {
         putEntryInBucket(entry, date, buckets, opts)
       }
     } else {
