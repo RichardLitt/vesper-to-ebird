@@ -119,6 +119,7 @@ function getStart (recordingStart, opts) {
 }
 
 function makeHourBuckets (input, dates, opts) {
+  // console.log(input, dates, opts)
   const newDates = {}
   for (var k in dates) newDates[k] = {}
 
