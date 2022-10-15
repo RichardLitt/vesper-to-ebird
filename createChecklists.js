@@ -348,7 +348,10 @@ async function exportResults (input, buckets, opts) {
           let speciesComment = `${counts[species]} NFC.<br><br> Detected automatically using Vesper, available at https://github.com/HaroldMills/Vesper. Classified manually using Vesper by me. More justification for this identification available upon request; here, without researching extensively, I was able to identify the call as being very typical of this species, based on known recordings I've seen.`
           // If there is a comment from the comments page, use that
           if (comments[species.toUpperCase()] && !comments[species.toUpperCase()].WIP) {
-            speciesComment = `${counts[species]} NFC.<br><br> ${comments[species.toUpperCase()].text} All NFC calls identified here follow this pattern, unless noted. If the number of identified calls does not match the NFC count, it is because the calls occurred close enough to each other to make it unclear whether or not a single bird was calling.<br><br> For more on ${species.toUpperCase()} NFC identification, consult this checklist ${comments[species.toUpperCase()].example}, or the updated page at https://birdinginvermont.com/nfc-species/${species}.`
+            speciesComment = `${counts[species]} NFC.<br><br> ${comments[species.toUpperCase()].text} All NFC calls identified here follow this pattern, unless noted. If the number of identified calls does not match the NFC count, it is because the calls occurred close enough to each other to make it unclear whether or not a single bird was calling.`
+            if (comments[species.toUpperCase()].example) {
+              speciesComment += `<br><br>For more on ${species.toUpperCase()} NFC identification, consult this checklist ${comments[species.toUpperCase()].example}, or the updated page at https://birdinginvermont.com/nfc-species/${species}.`
+            }
           }
           object['Species Comments'] = speciesComment.replace(/\n/g, '<br>')
           if (species.includes('sp.')) {
@@ -356,6 +359,15 @@ async function exportResults (input, buckets, opts) {
             object['Species Comments'] = `${counts[species]} NFC.<br><br> Detected automatically in the sound file using Vesper, available at https://github.com/HaroldMills/Vesper. Classified manually by me. All tseeps and most thrush calls are given by passerine species, to the best of my knowledge; any extraneous noises were not included in this count. Any call that was within fifteen seconds of another call of the previous call was not counted in the species total in order to ensure under- and not overcounts. The actual number may vary significantly. Vesper may also fail to identify many calls, so accuracy should not be assumed in this call count. The NFC number in this comment is the total amount of calls identifed by Vesper.`
           } else if (species === 'nowa') {
             console.log(chalk.red(`You saw ${counts[species]} NOWA species - is that right? Or did you click N by accident?`))
+          } else if (!codes[species]) {
+            // Overwrites zeeps.
+            // if (species === 'parulidae') {
+            // object['Common Name'] = 'warbler sp. (Parulidae sp.)'
+            if (species === 'passeriformes') {
+              object['Common Name'] = 'passerine sp.'
+            } else {
+              object['Common Name'] = species
+            }
           } else {
             object['Common Name'] = codes[species.toUpperCase()]
           }
