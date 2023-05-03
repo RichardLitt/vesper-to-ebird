@@ -98,11 +98,11 @@ function getDates (input, opts) {
   const unique = _.uniq(_.map(input, (x) => {
     if (opts && opts.start && opts.stop) {
       if (moment(x.real_detection_time, 'MM/DD/YY HH:mm:ss').isBetween(opts.start, opts.stop)) {
-        return x.date
+        return x.real_detection_time.split(' ')[0]
       }
       // Drop any dates which don't match
     } else {
-      return x.date
+      return x.real_detection_time.split(' ')[0]
     }
   })).filter(x => x)
   unique.forEach(x => {
@@ -129,15 +129,15 @@ function makeHourBuckets (input, dates, opts) {
 
     // Get any sessions per day. This is normally only , if started and stopped once per night.
     // TODO Add tests for this
-    const sessions = _.uniq(_.map(_.filter(input, e => e.date === date), entry => {
+    const sessions = _.uniq(_.map(_.filter(input, e => e.real_detection_time.split(' ')[0] === date), entry => {
       return entry.recording_start
     }))
 
     sessions.forEach(session => {
       // This will break if there are multiple different recording_starts per date
-      const dateObj = _.find(_.filter(input, e => e.date === date), ['recording_start', session])
+      const dateObj = _.find(_.filter(input, e => e.real_detection_time.split(' ')[0] === date), ['recording_start', session])
       if (dateObj) {
-        const recordingStart = moment(`${dateObj.date} ${dateObj.recording_start}`, 'MM/DD/YY HH:mm:ss')
+        const recordingStart = moment(`${dateObj.real_detection_time.split(' ')[0]} ${dateObj.recording_start}`, 'MM/DD/YY HH:mm:ss')
         const start = getStart(recordingStart, opts)
         // Figure out how many buckets to make
         const duration = moment.duration(dateObj.recording_length)
@@ -293,6 +293,7 @@ function printResults (input, buckets, opts) {
 
 function estimateBirdsCalling (array, species) {
   const format = 'HH:mm:ss'
+  // TODO the detector needs to be filtered out, too - right now calls detected by multiple filters are recorded as multiple calls
   const calls = _.map(_.filter(array, x => x.species === species), 'detection_time')
   let dupes = 0
   calls.forEach((time, index, array) => {
@@ -446,6 +447,7 @@ async function run () {
     date = moment(entry.real_detection_time, 'MM/DD/YY HH:mm:ss')
     if (opts && opts.start && opts.stop) {
       if (date.isBetween(opts.start, opts.stop)) {
+        // console.log(entry, date, buckets, opts)
         putEntryInBucket(entry, date, buckets, opts)
       }
     } else {
