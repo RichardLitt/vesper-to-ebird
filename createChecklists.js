@@ -389,7 +389,7 @@ const taxonomicMatching = {
     '': 'passerine sp.', // Both tseep and thrush classifiers default to passerine. Some issues - swallows? Cuckoos?
     unkn: 'bird sp.', // This will default to passerine sp., based on tseep and thrush sp mostly naming these species.
     zeep: 'warbler sp. (Parulidae sp.)', // All zeeps are warblers.
-    sparrow: 'sparrow sp.',
+    sparrow: 'new world sparrow sp. (Passerellidae sp.)',
     peep: 'peep sp.'
   },
   commonName: function (designation) {
