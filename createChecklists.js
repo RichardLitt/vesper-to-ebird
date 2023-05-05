@@ -34,10 +34,12 @@ const cli = meow(`
       alias: 'c'
     },
     start: {
-      type: 'string'
+      type: 'string',
+      alias: 'begin'
     },
     stop: {
-      type: 'string'
+      type: 'string',
+      alias: 'end'
     },
     export: {
       type: 'string',
@@ -49,6 +51,7 @@ const cli = meow(`
     },
     station: {
       type: 'string',
+      alias: 's',
       default: 'NBNC'
     }
   }
