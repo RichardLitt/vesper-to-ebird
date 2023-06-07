@@ -10,23 +10,27 @@ const cli = meow(`
 
   Arguments
     input        The input file or files, space delimited
-
+    
   Options
     --config     Optional path containing configuration
-    --start      The starting time
-    --stop       An end time
     --date       Specify a single date
-    --station    Specify the station manually
     --export     Export results to a file
+    --start      The starting time
+    --station    Specify the station (Required for export)
+    --stop       An end time
 
   Examples
     $ vesper-to-ebird input.csv
     $ vesper-to-ebird input.csv input2.csv
-    $ vesper-to-ebird input.csv --start="2020/09/04 21:30:00" --stop="2020/09/07 23:00:00" --export="2020-09-07 recorded"
+    $ vesper-to-ebird input.csv --station="NBNC" --start="2020/09/04 21:30:00" --stop="2020/09/07 23:00:00" --export="2020-09-07 recorded"
     $ vesper-to-ebird input.csv --date="2020/09/08"
-    $ vesper-to-ebird input.csv --station="NBNC"
-    $ vesper-to-ebird --config ~/mytotallysecret/settings.json input.csv --date="2020/09/08"
-    $ VESPER_TO_EBIRD_SETTINGS=~/mytotallysecret/settings.json vesper-to-ebird input.csv --date="2020/09/08"
+    $ vesper-to-ebird input.csv
+    $ vesper-to-ebird --config ~/mytotallysecret/settings.json input.csv --date="2020/09/08" --station="NBNC" 
+    $ VESPER_TO_EBIRD_SETTINGS=~/mytotallysecret/settings.json vesper-to-ebird input.csv --date="2020/09/08" --station="NBNC" 
+
+  Notes
+    You need to have a settings.json file with a station set in it in order for the export function to work.
+    For more, see settings.json in the repository: https://github.com/RichardLitt/vesper-to-ebird/blob/master/settings.json
 `, {
   flags: {
     config: {
@@ -51,8 +55,7 @@ const cli = meow(`
     },
     station: {
       type: 'string',
-      alias: 's',
-      default: 'NBNC'
+      alias: 's'
     }
   }
 })
@@ -65,12 +68,15 @@ const cli = meow(`
 function settings (path) {
   if (process.env.VESPER_TO_EBIRD_SETTINGS !== '') {
     // user has provided their own settings file via environment variable
+    console.log('Using settings file detected in environment.')
     return process.env.VESPER_TO_EBIRD_SETTINGS
   } else if (cli.flags.config) {
     // user has provided their own settings file via cli option
+    console.log('Using settings file provided in CLI.')
     return cli.flags.config
   } else {
     // return the default settings file
+    console.log('Using default settings file in this directory, `./settings.json`. ')
     return './settings.json'
   }
 }
@@ -314,6 +320,8 @@ async function exportResults (input, buckets, opts) {
   })
   const output = []
 
+  console.log(stations, opts)
+
   const eBirdReportObj = {
     'Common Name': '', // waterfowl sp.
     Genus: '',
@@ -437,8 +445,9 @@ async function run () {
       process.exit(1)
     }
   }
+
   // TODO Validate better, default to one in settings, let us know what one you're using if more than two
-  opts.station = (cli.flags.station) ? cli.flags.station : 'NBNC'
+  opts.station = cli.flags.station
 
   const dates = getDates(input, opts)
 
@@ -462,6 +471,11 @@ async function run () {
 
   if (cli.flags.export === '') {
     console.log('Please provide an export file name')
+    process.exit(1)
+  }
+  if (!cli.flags.station) {
+    console.log(chalk.red('ERROR: Please provide a station name here which matches the settings file: --station=example'))
+    console.log('See --help for more.')
     process.exit(1)
   }
   if (cli.flags.export) {
